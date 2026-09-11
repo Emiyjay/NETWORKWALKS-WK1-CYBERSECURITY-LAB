@@ -2,53 +2,46 @@
 
 **Participant:** John Emmanuel Sani  
 **Repository:** `NETWORKWALKS-WK1-CYBERSECURITY-LAB`  
-**Status:** In progress
+**Status:** Lab setup and verification completed
 
 ## 1. Project Overview
 
-This repository documents my Week 1 cybersecurity lab setup for the Network Walks project. The goal is to build and verify a small local cybersecurity practice environment using VirtualBox and Kali Linux, while documenting the configuration, troubleshooting process, and evidence from my own system.
+This repository documents my Week 1 cybersecurity laboratory setup for Network Walks. The lab uses Oracle VirtualBox and Kali Linux to establish a controlled environment for cybersecurity learning, network testing, and future practical exercises.
 
-This is an original lab record. Hardware specifications, network addresses, screenshots, errors, and solutions will be recorded from my actual environment rather than copied from reference projects.
+The configuration and troubleshooting notes below are based on the actual lab environment and verified command output.
 
 ## 2. Objectives
 
-- Prepare the host computer for cybersecurity laboratory work.
-- Install and configure Oracle VirtualBox.
+- Configure Oracle VirtualBox for cybersecurity laboratory work.
 - Install and boot Kali Linux as a virtual machine.
-- Create and configure a dedicated NAT Network.
-- Verify communication between Kali Linux and the virtual network gateway.
-- Verify Internet connectivity from Kali Linux.
-- Configure useful host/guest integration features.
-- Configure the required shared-folder arrangement.
-- Create a clean VM snapshot after successful setup.
-- Document problems encountered and how they were solved.
+- Create a dedicated NAT Network named `Kali-NAT`.
+- Configure the network as `10.0.0.0/24` with gateway `10.0.0.1` and DHCP enabled.
+- Verify Kali's assigned address, routing, gateway access, Internet access, and DNS resolution.
+- Configure host/guest integration and a shared Downloads folder.
+- Capture evidence and create a clean VM baseline snapshot.
+- Document troubleshooting and lessons learned.
 
 ## 3. Lab Environment
 
 ### Host Machine
 
-| Item | Actual value |
+| Item | Verified value |
 |---|---|
-| Operating system | To be verified from host |
-| Processor | To be verified from host |
-| RAM | To be verified from host |
-| Storage | To be verified from host |
-| VirtualBox version | To be verified |
+| Operating system | Windows 10 |
+| RAM | 8 GB |
+| Storage | 500 GB |
+| VirtualBox version | 7.2.4r170995 |
 
 ### Kali Linux VM
 
-| Item | Actual value |
+| Item | Verified value |
 |---|---|
-| Guest OS | Kali Linux |
-| VM RAM | To be verified |
-| VM storage | To be verified |
-| Network adapter | Adapter 1 |
+| Guest OS | Kali GNU/Linux Rolling 2025.4 |
+| Network adapter | Adapter 1 / `eth0` |
 | Network mode | NAT Network |
 | NAT Network name | `Kali-NAT` |
 
 ## 4. Network Configuration
-
-The lab NAT Network was created as follows:
 
 ```text
 Network name: Kali-NAT
@@ -56,98 +49,101 @@ IPv4 network: 10.0.0.0/24
 Gateway:      10.0.0.1
 DHCP:         Enabled
 IPv6:         Disabled
+Kali IP:     10.0.0.3/24
+Interface:   eth0
 ```
 
-The Kali Linux IPv4 address will be recorded only after it has been verified from the running VM.
+The assignment reference used `10.0.0.2` as a target address, but DHCP assigned `10.0.0.3` in this actual environment. The documented address therefore reflects the real lab rather than an assumed value.
 
-> **Important:** The final Kali IP address must come from the actual lab. It will not be copied from a sample repository.
+## 5. Verification
 
-## 5. Setup Progress
+The final verified route was:
 
-- [x] GitHub repository created
-- [x] Kali Linux installed and booted
-- [x] NAT Network `Kali-NAT` created
-- [x] NAT Network configured with `10.0.0.0/24`
-- [x] DHCP enabled on `Kali-NAT`
-- [ ] Verify Kali IPv4 address
-- [ ] Verify default gateway
-- [ ] Verify gateway connectivity
-- [ ] Verify Internet connectivity by IP
-- [ ] Verify DNS resolution
-- [ ] Configure clipboard integration
-- [ ] Configure drag and drop if required
-- [ ] Configure shared `/downloads` folder
-- [ ] Create final VM snapshot
-- [ ] Capture final evidence screenshots
-- [ ] Publish final project documentation
-- [ ] Prepare LinkedIn project post
+```text
+default via 10.0.0.1 dev eth0
+10.0.0.0/24 dev eth0
+```
 
-## 6. Verification Commands
+Connectivity tests completed successfully:
 
-The following commands will be used inside Kali Linux to record the real network state:
+| Test | Result |
+|---|---|
+| Kali → `10.0.0.1` | PASS — 0% packet loss |
+| Kali → `8.8.8.8` | PASS — 0% packet loss |
+| Kali → `google.com` | PASS — DNS resolution and 0% packet loss |
+
+## 6. Host/Guest Integration
+
+- Guest Additions kernel modules `vboxguest` and `vboxsf` were verified as loaded.
+- User `john` is a member of the `vboxsf` group.
+- Windows Downloads was shared through VirtualBox as `downloads`.
+- The shared folder was mounted and verified at `/downloads`.
+- Bidirectional clipboard was configured and subsequently confirmed working.
+- Drag-and-drop was configured in VirtualBox.
+
+## 7. Troubleshooting
+
+### NAT Network initially appeared unavailable from Kali
+
+The VirtualBox NAT Network itself was correctly configured, but Kali's active connection was initially using `eth1` with an ordinary NAT address (`10.0.3.15/24`). Consequently, traffic was not using `Kali-NAT`.
+
+The VM's adapter MAC addresses were compared with Kali's interfaces to identify the correct interface. Adapter 1 mapped to `eth0`, which was then activated with:
 
 ```bash
-ip -br addr
-ip route
-ping -c 4 10.0.0.1
-ping -c 4 8.8.8.8
-ping -c 4 google.com
+sudo nmcli device connect eth0
 ```
 
-The command output will be added to the evidence documentation after the host computer is available again.
+Kali subsequently received `10.0.0.3/24` and a default route through `10.0.0.1`. Gateway, Internet, and DNS tests then passed.
 
-## 7. Problem Encountered During Setup
+### Sudo hostname warning
 
-During the network configuration stage, the VM was changed to use the NAT Network, but the expected network information was not immediately appearing as expected. The issue is still being investigated from the actual machine.
+`sudo` initially reported that the hostname could not be resolved because `/etc/hosts` contained only `127.0.0.1 localhost`. The active hostname was added as a local host entry:
 
-The troubleshooting process will be documented rather than presenting an assumed successful configuration.
+```text
+127.0.1.1 kali-temp-1786642011
+```
 
-### Troubleshooting approach
+The warning was resolved without changing the network configuration.
 
-1. Confirm that the VM is powered off before changing VirtualBox network settings.
-2. Confirm Adapter 1 is enabled.
-3. Confirm the attachment type is **NAT Network**, not ordinary **NAT**.
-4. Confirm the selected network is exactly `Kali-NAT`.
-5. Confirm the virtual network uses `10.0.0.0/24`.
-6. Confirm DHCP is enabled.
-7. Boot Kali and inspect the interface with `ip -br addr`.
-8. Inspect routing with `ip route`.
-9. Test the gateway, Internet address, and DNS separately.
+### Shared folder auto-mount
+
+The VirtualBox shared-folder modules were present, but the automatically expected mount directory was not initially created. The required mount point was created and the share was mounted manually:
+
+```bash
+sudo mkdir -p /downloads
+sudo mount -t vboxsf downloads /downloads
+```
+
+The Windows Downloads contents were then visible from `/downloads`.
 
 ## 8. Evidence
 
-Screenshots will be added as the lab is completed.
+The repository contains captured evidence for the completed setup. Planned/added evidence includes:
 
-Planned evidence includes:
-
-- Host computer specifications
-- VirtualBox installation/version
-- Kali Linux VM running
-- Kali VM network adapter settings
+- VirtualBox and Kali VM
 - `Kali-NAT` configuration
-- Kali IPv4 address
-- Routing table
-- Successful gateway ping
-- Successful Internet connectivity test
-- DNS resolution
-- Shared-folder configuration
+- Kali IP and routing
+- Successful gateway/Internet/DNS tests
+- Shared `/downloads` folder
 - Final VM snapshot
 
 ## 9. Lessons Learned
 
-The first week is focused not only on getting the tools installed, but also on learning how to verify a cybersecurity lab instead of assuming that a configuration is correct. Each network setting will therefore be checked from both the VirtualBox side and the Kali Linux side.
+- A VirtualBox network can be configured correctly while the guest is still using a different adapter.
+- `ip -br addr` and `ip route` are essential for identifying the interface actually carrying traffic.
+- Gateway, raw Internet IP, and DNS tests verify different layers of connectivity.
+- DHCP-assigned addresses should be documented from the real environment instead of forcing an address from a sample.
+- Host/guest integration depends on Guest Additions and correct group membership.
+- Troubleshooting evidence is part of a reproducible cybersecurity lab setup.
 
-A failed or unexpected configuration is also useful evidence when the troubleshooting process is recorded accurately.
+## 10. Security and Ethical Use
 
-## 10. Security Notes
+This environment is intended for authorized cybersecurity education and testing. Activities should remain inside systems and networks for which permission has been granted.
 
-- No passwords, tokens, API keys, or private credentials will be committed to this repository.
-- VM disk images will not be uploaded.
-- Screenshots will be checked for sensitive information before publication.
-- Network addresses will represent the actual lab configuration and will not be fabricated.
+No passwords, tokens, API keys, or private credentials are included in this repository. VM disk images are not uploaded.
 
-## 11. Project Status
+## 11. Author
 
-**Current stage:** Lab documentation and network verification pending host-machine access.
-
-The next technical task is to verify the Kali interface, gateway, routing table, and Internet/DNS connectivity from the running VM.
+**John Emmanuel Sani**  
+Cybersecurity Student  
+GitHub: [Emiyjay](https://github.com/Emiyjay)
